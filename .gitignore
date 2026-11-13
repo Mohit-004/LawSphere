@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.env
+
+# Local application data and model files
+local-data/
+models/
+
+# Editors and operating systems
+.idea/
+.vscode/
+Thumbs.db
+Desktop.ini
