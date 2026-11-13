@@ -10,4 +10,5 @@ class SystemStatus(BaseModel):
     version: str
     status: Literal["ok"]
     offline_mode: bool
+    sqlite: Literal["ready"]
     ollama: Literal["not_checked"]
