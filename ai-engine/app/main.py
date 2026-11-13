@@ -6,7 +6,8 @@ from fastapi import FastAPI
 
 from app.core.config import settings
 from app.database.session import initialize_database
-from app.schemas.system import SystemStatus
+from app.models.ollama import get_ollama_status
+from app.schemas.system import ModelList, SystemStatus
 
 
 @asynccontextmanager
@@ -25,12 +26,24 @@ app = FastAPI(
 
 @app.get("/api/v1/system/status", response_model=SystemStatus, tags=["system"])
 def get_system_status() -> SystemStatus:
-    """Report API availability without implying model/runtime readiness."""
+    """Report API, database, and local model-runtime availability."""
+    ollama = get_ollama_status()
     return SystemStatus(
         app_name=settings.app_name,
         version=settings.app_version,
         status="ok",
         offline_mode=True,
         sqlite="ready",
-        ollama="not_checked",
+        ollama="available" if ollama.available else "unavailable",
+        installed_model_count=len(ollama.models),
+    )
+
+
+@app.get("/api/v1/models", response_model=ModelList, tags=["models"])
+def list_local_models() -> ModelList:
+    """List models already installed in the local Ollama runtime."""
+    ollama = get_ollama_status()
+    return ModelList(
+        ollama="available" if ollama.available else "unavailable",
+        models=ollama.models,
     )

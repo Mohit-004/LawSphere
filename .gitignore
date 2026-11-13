@@ -6,7 +6,7 @@ __pycache__/
 
 # Local application data and model files
 local-data/
-models/
+/models/
 
 # Editors and operating systems
 .idea/

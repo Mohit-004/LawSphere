@@ -11,4 +11,10 @@ class SystemStatus(BaseModel):
     status: Literal["ok"]
     offline_mode: bool
     sqlite: Literal["ready"]
-    ollama: Literal["not_checked"]
+    ollama: Literal["available", "unavailable"]
+    installed_model_count: int
+
+
+class ModelList(BaseModel):
+    ollama: Literal["available", "unavailable"]
+    models: list[str]

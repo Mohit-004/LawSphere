@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     host: str = "127.0.0.1"
     port: int = 8000
     database_path: Path = _PROJECT_ROOT / "local-data" / "database" / "lawsphere.db"
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_timeout_seconds: float = 1.5
 
     model_config = SettingsConfigDict(
         env_prefix="LAWSPHERE_",
