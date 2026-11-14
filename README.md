@@ -19,15 +19,20 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 
 The service binds to loopback by default. Visit `http://127.0.0.1:8000/docs` for the local API schema. Startup creates `local-data/database/lawsphere.db`; set `LAWSPHERE_DATABASE_PATH` to use another local path. `GET /api/v1/system/status` reports API, SQLite, and Ollama availability. `GET /api/v1/models` lists models already installed in Ollama. Configure the local Ollama endpoint with `LAWSPHERE_OLLAMA_BASE_URL`; checks time out quickly and report unavailable when the service cannot be reached.
 
-### Java client
+### Java launcher
 
-With the Python service running, use Java 21 and Maven from `desktop-app/` to query its local status:
+Prepare the Python environment once, then use Java 21 and Maven from `desktop-app/`. The launcher starts the local API if needed, waits for its status endpoint, displays service readiness, then shuts down only the backend process it started. Backend output is written to `local-data/logs/ai-engine.log`.
 
 ```powershell
+Set-Location ai-engine
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Set-Location ..\desktop-app
 mvn compile exec:java
 ```
 
-An alternate local API base URL can be passed as the first argument, for example `mvn compile exec:java "-Dexec.args=http://127.0.0.1:8001"`.
+Set `LAWSPHERE_PYTHON_EXECUTABLE` if Python is not available as `python` and the project virtual environment is absent. Set `LAWSPHERE_PROJECT_ROOT` when launching from outside the project folders.
 
 ## Roadmap
 
@@ -35,7 +40,8 @@ An alternate local API base URL can be passed as the first argument, for example
 - [x] Phase 1, slice 2: local SQLite initialization
 - [x] Phase 1, slice 3: local Ollama connectivity and installed-model listing
 - [x] Phase 1, slice 4: Java HTTP client for Python API status and model endpoints
-- [ ] Phase 1: managed backend startup and desktop shell
+- [x] Phase 1, slice 5: Java-managed local Python service startup and shutdown
+- [ ] Phase 1: JavaFX desktop shell and first-run dependency experience
 - [ ] Phase 2: document ingestion, chunking, embeddings, retrieval, grounded answers
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
