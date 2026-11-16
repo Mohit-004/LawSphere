@@ -1,22 +1,46 @@
 package in.lawsphere.desktop;
 
 import in.lawsphere.desktop.api.LocalAiClient;
-import in.lawsphere.desktop.api.SystemStatus;
 import in.lawsphere.desktop.service.AiEngineProcessManager;
+import in.lawsphere.desktop.ui.DashboardController;
+import in.lawsphere.desktop.ui.DashboardView;
+import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
-public final class LawSphereLauncher {
-    private LawSphereLauncher() {
+public final class LawSphereLauncher extends Application {
+    private AiEngineProcessManager processManager;
+
+    @Override
+    public void start(Stage stage) {
+        LocalAiClient client = new LocalAiClient();
+        processManager = new AiEngineProcessManager(client);
+
+        DashboardView view = new DashboardView();
+        DashboardController controller = new DashboardController(view, client, processManager);
+        controller.initialize();
+
+        Scene scene = new Scene(view, 1040, 700);
+        var stylesheet = getClass().getResource("/styles/dashboard.css");
+        if (stylesheet != null) {
+            scene.getStylesheets().add(stylesheet.toExternalForm());
+        }
+
+        stage.setTitle("LawSphere");
+        stage.setMinWidth(820);
+        stage.setMinHeight(580);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+    @Override
+    public void stop() {
+        if (processManager != null) {
+            processManager.close();
+        }
     }
 
     public static void main(String[] args) {
-        LocalAiClient client = new LocalAiClient();
-        try (AiEngineProcessManager processManager = new AiEngineProcessManager(client)) {
-            processManager.startIfNeeded();
-            SystemStatus status = client.getSystemStatus();
-            System.out.printf(
-                    "%s %s | API: %s | SQLite: %s | Ollama: %s (%d models)%n",
-                    status.appName(), status.version(), status.status(), status.sqlite(),
-                    status.ollama(), status.installedModelCount());
-        }
+        launch(args);
     }
 }
