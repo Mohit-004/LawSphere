@@ -64,6 +64,7 @@ public final class DashboardView extends BorderPane {
         VBox.setVgrow(models, Priority.ALWAYS);
 
         error.getStyleClass().add("error-message");
+        error.setWrapText(true);
         VBox content = new VBox(18, heading, summary, cards, modelsHeading, models, error);
         content.setPadding(new Insets(12, 36, 24, 36));
         VBox.setVgrow(models, Priority.ALWAYS);
@@ -116,6 +117,8 @@ public final class DashboardView extends BorderPane {
     public void showError(String message) {
         apiValue.setText("UNAVAILABLE");
         summary.setText("The local AI service could not be reached.");
-        error.setText(message);
+        error.setText(message + System.lineSeparator() + System.lineSeparator()
+                + "From the project folder, run .\\scripts\\setup-python.ps1 to install backend dependencies. "
+                + "See README.md for Python, Java, and Maven prerequisites.");
     }
 }

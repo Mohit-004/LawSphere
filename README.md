@@ -21,14 +21,11 @@ The service binds to loopback by default. Visit `http://127.0.0.1:8000/docs` for
 
 ### JavaFX desktop shell
 
-Prepare the Python environment once, then use Java 21 and Maven from `desktop-app/`. The dashboard starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Backend output is written to `local-data/logs/ai-engine.log`.
+Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Backend output is written to `local-data/logs/ai-engine.log`.
 
 ```powershell
-Set-Location ai-engine
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Set-Location ..\desktop-app
+.\scripts\setup-python.ps1
+Set-Location .\desktop-app
 mvn javafx:run
 ```
 
@@ -42,7 +39,8 @@ Set `LAWSPHERE_PYTHON_EXECUTABLE` if Python is not available as `python` and the
 - [x] Phase 1, slice 4: Java HTTP client for Python API status and model endpoints
 - [x] Phase 1, slice 5: Java-managed local Python service startup and shutdown
 - [x] Phase 1, slice 6: JavaFX dashboard for local service and model status
-- [ ] Phase 1: first-run dependency experience and desktop packaging
+- [x] Phase 1, slice 7: Python environment setup script and startup recovery guidance
+- [ ] Phase 1: desktop packaging
 - [ ] Phase 2: document ingestion, chunking, embeddings, retrieval, grounded answers
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
