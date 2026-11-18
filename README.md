@@ -4,7 +4,7 @@ LawSphere is planned as an offline-first Indian legal research and document assi
 
 ## Current milestone: Phase 1 foundation
 
-The current implementation establishes the local Python API boundary, SQLite initialization for future application metadata, local Ollama detection/model listing, and a Java client for reading backend status. It does not yet ingest legal sources or generate answers.
+The current implementation establishes the local Python API boundary, SQLite initialization for future application metadata, local Ollama detection/model listing, a JavaFX status dashboard, and Windows packaging scripts. It does not yet ingest legal sources or generate answers.
 
 ### Run the API
 
@@ -21,7 +21,7 @@ The service binds to loopback by default. Visit `http://127.0.0.1:8000/docs` for
 
 ### JavaFX desktop shell
 
-Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Backend output is written to `local-data/logs/ai-engine.log`.
+Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. The script installs it in `%LOCALAPPDATA%\LawSphere\python-env` on Windows. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Managed runs keep the database and logs under `%LOCALAPPDATA%\LawSphere`.
 
 ```powershell
 .\scripts\setup-python.ps1
@@ -29,7 +29,20 @@ Set-Location .\desktop-app
 mvn javafx:run
 ```
 
-Set `LAWSPHERE_PYTHON_EXECUTABLE` if Python is not available as `python` and the project virtual environment is absent. Set `LAWSPHERE_PROJECT_ROOT` when launching from outside the project folders.
+Set `LAWSPHERE_PYTHON_EXECUTABLE` if you need to select a different Python executable. Set `LAWSPHERE_PROJECT_ROOT` when launching from outside the project folders.
+
+### Build a Windows package
+
+Run packaging on 64-bit Windows with Java 21, Maven, and WiX Toolset 3.x on `PATH` for `.exe` or `.msi` installers. An app image can be built without WiX. The bundle contains the Java runtime, desktop app, and Python source. Install Python and prepare its environment separately with the included setup script; Ollama and AI models are also installed separately. Generated packages go under `packaging/build/`.
+
+```powershell
+.\packaging\package-windows.ps1
+# or create an MSI / app image:
+.\packaging\package-windows.ps1 -PackageType msi
+.\packaging\package-windows.ps1 -PackageType app-image
+```
+
+Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside the installed files when the app is uninstalled.
 
 ## Roadmap
 
@@ -40,7 +53,8 @@ Set `LAWSPHERE_PYTHON_EXECUTABLE` if Python is not available as `python` and the
 - [x] Phase 1, slice 5: Java-managed local Python service startup and shutdown
 - [x] Phase 1, slice 6: JavaFX dashboard for local service and model status
 - [x] Phase 1, slice 7: Python environment setup script and startup recovery guidance
-- [ ] Phase 1: desktop packaging
+- [x] Packaging preparation: Windows EXE/MSI and app-image build script added
+- [ ] Build and verify the Windows installer on a Windows packaging machine
 - [ ] Phase 2: document ingestion, chunking, embeddings, retrieval, grounded answers
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional

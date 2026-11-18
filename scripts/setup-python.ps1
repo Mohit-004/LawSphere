@@ -3,7 +3,13 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $engineDirectory = Join-Path $projectRoot "ai-engine"
 $requirementsFile = Join-Path $engineDirectory "requirements.txt"
-$pythonExecutable = Join-Path $engineDirectory ".venv\Scripts\python.exe"
+$localDataDirectory = if ([string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
+    Join-Path $projectRoot "local-data"
+} else {
+    Join-Path $env:LOCALAPPDATA "LawSphere"
+}
+$pythonEnvironment = Join-Path $localDataDirectory "python-env"
+$pythonExecutable = Join-Path $pythonEnvironment "Scripts\python.exe"
 
 if (-not (Test-Path -LiteralPath $requirementsFile -PathType Leaf)) {
     throw "Could not find backend requirements at $requirementsFile"
@@ -19,13 +25,13 @@ if (-not (Test-Path -LiteralPath $pythonExecutable -PathType Leaf)) {
     }
 
     if ($null -ne $pythonCommand) {
-        & $pythonCommand.Source -m venv (Join-Path $engineDirectory ".venv")
+        & $pythonCommand.Source -m venv $pythonEnvironment
     } else {
         $pythonLauncher = Get-Command py -ErrorAction SilentlyContinue
         if ($null -eq $pythonLauncher) {
             throw "Install Python 3.11 or later, then run this setup script again."
         }
-        & $pythonLauncher.Source -3.11 -m venv (Join-Path $engineDirectory ".venv")
+        & $pythonLauncher.Source -3.11 -m venv $pythonEnvironment
     }
     if ($LASTEXITCODE -ne 0) {
         throw "Could not create the Python virtual environment."

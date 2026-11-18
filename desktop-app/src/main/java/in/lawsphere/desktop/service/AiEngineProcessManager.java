@@ -4,6 +4,7 @@ import in.lawsphere.desktop.api.AiServiceException;
 import in.lawsphere.desktop.api.LocalAiClient;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -32,7 +33,8 @@ public final class AiEngineProcessManager implements AutoCloseable {
         }
 
         Path engineDirectory = projectRoot.resolve("ai-engine");
-        Path logsDirectory = projectRoot.resolve("local-data").resolve("logs");
+        Path localDataDirectory = resolveLocalDataDirectory();
+        Path logsDirectory = localDataDirectory.resolve("logs");
         Path logFile = logsDirectory.resolve("ai-engine.log");
         try {
             Files.createDirectories(logsDirectory);
@@ -41,8 +43,8 @@ public final class AiEngineProcessManager implements AutoCloseable {
             builder.redirectErrorStream(true);
             builder.redirectOutput(logFile.toFile());
             Map<String, String> environment = builder.environment();
-            environment.put("LAWSPHERE_HOST", "127.0.0.1");
-            environment.put("LAWSPHERE_PORT", "8000");
+            environment.put("LAWSPHERE_DATABASE_PATH",
+                    localDataDirectory.resolve("database").resolve("lawsphere.db").toString());
             process = builder.start();
         } catch (IOException exception) {
             throw new AiServiceException(
@@ -77,12 +79,19 @@ public final class AiEngineProcessManager implements AutoCloseable {
         }
     }
 
-    private static List<String> buildCommand(Path engineDirectory) {
+    private List<String> buildCommand(Path engineDirectory) {
         String configuredPython = System.getenv("LAWSPHERE_PYTHON_EXECUTABLE");
+        String localAppData = System.getenv("LOCALAPPDATA");
+        Path installedPython = localAppData == null || localAppData.isBlank()
+                ? projectRoot.resolve("local-data").resolve("python-env")
+                        .resolve("Scripts").resolve("python.exe")
+                : Path.of(localAppData, "LawSphere", "python-env", "Scripts", "python.exe");
         Path virtualEnvPython = engineDirectory.resolve(".venv").resolve("Scripts").resolve("python.exe");
         String python = configuredPython != null && !configuredPython.isBlank()
                 ? configuredPython
-                : Files.isRegularFile(virtualEnvPython) ? virtualEnvPython.toString() : "python";
+                : Files.isRegularFile(installedPython)
+                        ? installedPython.toString()
+                        : Files.isRegularFile(virtualEnvPython) ? virtualEnvPython.toString() : "python";
         return List.of(
                 python, "-m", "uvicorn", "app.main:app",
                 "--host", "127.0.0.1", "--port", "8000");
@@ -94,16 +103,41 @@ public final class AiEngineProcessManager implements AutoCloseable {
             return Path.of(configuredRoot).toAbsolutePath().normalize();
         }
 
-        Path current = Path.of("").toAbsolutePath().normalize();
-        if (Files.isDirectory(current.resolve("ai-engine"))) {
-            return current;
+        try {
+            Path codeLocation = Path.of(AiEngineProcessManager.class.getProtectionDomain()
+                    .getCodeSource().getLocation().toURI()).toAbsolutePath().normalize();
+            Path candidate = Files.isRegularFile(codeLocation) ? codeLocation.getParent() : codeLocation;
+            for (Path current = candidate; current != null; current = current.getParent()) {
+                if (Files.isDirectory(current.resolve("ai-engine"))) {
+                    return current;
+                }
+            }
+        } catch (URISyntaxException | NullPointerException exception) {
+            // Fall through to the working directory lookup for unusual class loaders.
         }
-        Path parent = current.getParent();
-        if (parent != null && Files.isDirectory(parent.resolve("ai-engine"))) {
-            return parent;
+
+        for (Path current = Path.of("").toAbsolutePath().normalize();
+             current != null;
+             current = current.getParent()) {
+            if (Files.isDirectory(current.resolve("ai-engine"))) {
+                return current;
+            }
         }
         throw new AiServiceException(
                 "Could not locate the LawSphere project. Set LAWSPHERE_PROJECT_ROOT.");
+    }
+
+    private Path resolveLocalDataDirectory() {
+        String localAppData = System.getenv("LOCALAPPDATA");
+        Path directory = localAppData == null || localAppData.isBlank()
+                ? projectRoot.resolve("local-data")
+                : Path.of(localAppData, "LawSphere");
+        try {
+            Files.createDirectories(directory);
+        } catch (IOException exception) {
+            throw new AiServiceException("Could not create LawSphere user data directory " + directory, exception);
+        }
+        return directory;
     }
 
     private void pauseBeforeRetry() {

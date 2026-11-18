@@ -1,14 +1,16 @@
 package in.lawsphere.desktop;
 
-import in.lawsphere.desktop.api.LocalAiClient;
-import in.lawsphere.desktop.service.AiEngineProcessManager;
-import in.lawsphere.desktop.ui.DashboardController;
-import in.lawsphere.desktop.ui.DashboardView;
 import javafx.application.Application;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
 
-public final class LawSphereLauncher extends Application {
+/** Classpath-safe entry point for Maven and jpackage launchers. */
+public final class LawSphereLauncher {
+    private LawSphereLauncher() {
+    }
+
+    public static void main(String[] args) {
+        Application.launch(LawSphereApplication.class, args);
+    }
+}
     private AiEngineProcessManager processManager;
 
     @Override
