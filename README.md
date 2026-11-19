@@ -2,9 +2,9 @@
 
 LawSphere is planned as an offline-first Indian legal research and document assistant. The first release will use retrieval-augmented generation (RAG); an ontology and knowledge-graph extension is reserved for a later version.
 
-## Current milestone: Phase 1 foundation
+## Current milestone: Phase 2 RAG foundation
 
-The current implementation establishes the local Python API boundary, SQLite initialization for future application metadata, local Ollama detection/model listing, a JavaFX status dashboard, and Windows packaging scripts. It does not yet ingest legal sources or generate answers.
+The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and plain-text source ingestion with offset-tracked chunks. It does not yet create embeddings or generate answers.
 
 ### Run the API
 
@@ -18,6 +18,21 @@ uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
 The service binds to loopback by default. Visit `http://127.0.0.1:8000/docs` for the local API schema. Startup creates `local-data/database/lawsphere.db`; set `LAWSPHERE_DATABASE_PATH` to use another local path. `GET /api/v1/system/status` reports API, SQLite, and Ollama availability. `GET /api/v1/models` lists models already installed in Ollama. Configure the local Ollama endpoint with `LAWSPHERE_OLLAMA_BASE_URL`; checks time out quickly and report unavailable when the service cannot be reached.
+
+### Ingest plain text
+
+`POST /api/v1/documents/text` stores a title, optional source reference, normalized text, and overlapping chunks in the local SQLite database. Each chunk records its offsets in the stored text for later source references. Requests accept up to 2 MB of text. For example:
+
+```powershell
+$body = @{
+    title = "Sample legal source"
+    source = "Manual import"
+    content = "Paste source text here. Paragraphs and line breaks are retained."
+} | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents/text" `
+    -Method Post -ContentType "application/json" -Body $body
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents"
+```
 
 ### JavaFX desktop shell
 
@@ -55,7 +70,8 @@ Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside 
 - [x] Phase 1, slice 7: Python environment setup script and startup recovery guidance
 - [x] Packaging preparation: Windows EXE/MSI and app-image build script added
 - [ ] Build and verify the Windows installer on a Windows packaging machine
-- [ ] Phase 2: document ingestion, chunking, embeddings, retrieval, grounded answers
+- [x] Phase 2, slice 1: normalized plain-text storage and offset-tracked chunks
+- [ ] Phase 2: PDF/DOCX extraction, embeddings, retrieval, grounded answers
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
 
