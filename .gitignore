@@ -8,6 +8,7 @@ __pycache__/
 local-data/
 /models/
 /packaging/build/
+/desktop-app/target/
 
 # Editors and operating systems
 .idea/

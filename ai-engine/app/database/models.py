@@ -14,6 +14,8 @@ class Document(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     title: Mapped[str] = mapped_column(String(250), nullable=False)
     source: Mapped[str | None] = mapped_column(String(2000), nullable=True)
+    document_type: Mapped[str] = mapped_column(String(10), default="text", nullable=False)
+    stored_path: Mapped[str | None] = mapped_column(String(4096), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     content_sha256: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
@@ -44,4 +46,5 @@ class DocumentChunk(Base):
     text: Mapped[str] = mapped_column(Text, nullable=False)
     start_offset: Mapped[int] = mapped_column(Integer, nullable=False)
     end_offset: Mapped[int] = mapped_column(Integer, nullable=False)
+    page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     document: Mapped[Document] = relationship(back_populates="chunks")

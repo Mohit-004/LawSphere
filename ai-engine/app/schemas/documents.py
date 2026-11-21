@@ -24,6 +24,7 @@ class DocumentSummary(BaseModel):
     id: str
     title: str
     source: str | None
+    document_type: str
     chunk_count: int
     created_at: datetime
 

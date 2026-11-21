@@ -4,7 +4,7 @@ LawSphere is planned as an offline-first Indian legal research and document assi
 
 ## Current milestone: Phase 2 RAG foundation
 
-The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and plain-text source ingestion with offset-tracked chunks. It does not yet create embeddings or generate answers.
+The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. It does not yet create embeddings or generate answers.
 
 ### Run the API
 
@@ -33,6 +33,17 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents/text" `
     -Method Post -ContentType "application/json" -Body $body
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents"
 ```
+
+PDF and DOCX files can be submitted as multipart uploads to `POST /api/v1/documents/upload` (20 MB maximum). The original file is saved under the local `documents/` data folder; extracted text and chunks go into SQLite. PDF chunk metadata includes its page number. Password-protected PDFs and image-only PDFs are rejected; OCR is not included yet. For a manual upload, use the interactive form at `http://127.0.0.1:8000/docs`, or run:
+
+```powershell
+curl.exe -F "file=@C:\path\to\document.pdf" `
+    -F "title=Imported legal document" `
+    -F "source=Manual import" `
+    http://127.0.0.1:8000/api/v1/documents/upload
+```
+
+PyMuPDF is dual-licensed under AGPL-3.0 or a commercial license; review its [license terms](https://pypi.org/project/pymupdf/) before distributing a packaged build.
 
 ### JavaFX desktop shell
 
@@ -71,7 +82,8 @@ Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside 
 - [x] Packaging preparation: Windows EXE/MSI and app-image build script added
 - [ ] Build and verify the Windows installer on a Windows packaging machine
 - [x] Phase 2, slice 1: normalized plain-text storage and offset-tracked chunks
-- [ ] Phase 2: PDF/DOCX extraction, embeddings, retrieval, grounded answers
+- [x] Phase 2, slice 2: PDF/DOCX upload and local text extraction
+- [ ] Phase 2: OCR, embeddings, retrieval, grounded answers
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
 

@@ -1,6 +1,6 @@
 """SQLite engine and initialization helpers."""
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from typing import Iterator
@@ -24,7 +24,24 @@ def initialize_database() -> Engine:
         connect_args={"check_same_thread": False},
     )
     Base.metadata.create_all(_engine)
+    _apply_sqlite_migrations(_engine)
     return _engine
+
+
+def _apply_sqlite_migrations(engine: Engine) -> None:
+    """Add new nullable/defaulted columns to databases created by earlier slices."""
+    with engine.begin() as connection:
+        document_columns = {column["name"] for column in inspect(connection).get_columns("documents")}
+        if "document_type" not in document_columns:
+            connection.execute(text(
+                "ALTER TABLE documents ADD COLUMN document_type VARCHAR(10) NOT NULL DEFAULT 'text'"
+            ))
+        if "stored_path" not in document_columns:
+            connection.execute(text("ALTER TABLE documents ADD COLUMN stored_path VARCHAR(4096)"))
+
+        chunk_columns = {column["name"] for column in inspect(connection).get_columns("document_chunks")}
+        if "page_number" not in chunk_columns:
+            connection.execute(text("ALTER TABLE document_chunks ADD COLUMN page_number INTEGER"))
 
 
 def get_database_session() -> Iterator[Session]:
