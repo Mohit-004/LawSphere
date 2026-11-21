@@ -9,12 +9,16 @@ from app.database.session import initialize_database
 from app.api.routes.documents import router as documents_router
 from app.models.ollama import get_ollama_status
 from app.schemas.system import ModelList, SystemStatus
+from app.vector_store.qdrant import close_vector_store
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     initialize_database()
-    yield
+    try:
+        yield
+    finally:
+        close_vector_store()
 
 
 app = FastAPI(

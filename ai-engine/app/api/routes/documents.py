@@ -18,7 +18,10 @@ from app.document_processing.extractors import (
     extract_docx,
     extract_pdf,
 )
+from app.embeddings.ollama import EmbeddingError, OllamaEmbeddingProvider
+from app.vector_store.qdrant import VectorStoreError, index_document_chunks
 from app.schemas.documents import (
+    DocumentIndexResponse,
     DocumentIngestResponse,
     DocumentListResponse,
     DocumentSummary,
@@ -185,4 +188,38 @@ def list_documents(
             )
             for document in documents
         ]
+    )
+
+
+@router.post("/{document_id}/index", response_model=DocumentIndexResponse)
+def index_document(
+    document_id: str,
+    session: Session = Depends(get_database_session),
+) -> DocumentIndexResponse:
+    """Embed stored chunks with Ollama and persist them in local Qdrant."""
+    document = session.get(Document, document_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail="Document was not found.")
+    chunks = list(session.scalars(
+        select(DocumentChunk)
+        .where(DocumentChunk.document_id == document_id)
+        .order_by(DocumentChunk.chunk_index)
+    ).all())
+    if not chunks:
+        raise HTTPException(status_code=422, detail="Document has no chunks to index.")
+
+    try:
+        embeddings = OllamaEmbeddingProvider().embed_texts([chunk.text for chunk in chunks])
+        index_document_chunks(document, chunks, embeddings)
+    except EmbeddingError as exception:
+        raise HTTPException(status_code=503, detail=str(exception)) from exception
+    except VectorStoreError as exception:
+        raise HTTPException(status_code=500, detail=str(exception)) from exception
+
+    return DocumentIndexResponse(
+        document_id=document.id,
+        embedding_model=settings.embedding_model,
+        indexed_chunks=len(chunks),
+        vector_dimensions=len(embeddings[0]),
+        status="indexed",
     )

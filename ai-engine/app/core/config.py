@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     database_path: Path = _PROJECT_ROOT / "local-data" / "database" / "lawsphere.db"
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_timeout_seconds: float = 1.5
+    embedding_model: str = "embeddinggemma"
+    embedding_batch_size: int = 32
+    embedding_timeout_seconds: float = 120.0
+    vector_store_path: Path = _PROJECT_ROOT / "local-data" / "vectors"
+    vector_collection_prefix: str = "lawsphere_chunks"
 
     model_config = SettingsConfigDict(
         env_prefix="LAWSPHERE_",

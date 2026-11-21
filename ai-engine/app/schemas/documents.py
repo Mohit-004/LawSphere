@@ -36,3 +36,11 @@ class DocumentIngestResponse(DocumentSummary):
 
 class DocumentListResponse(BaseModel):
     documents: list[DocumentSummary]
+
+
+class DocumentIndexResponse(BaseModel):
+    document_id: str
+    embedding_model: str
+    indexed_chunks: int
+    vector_dimensions: int
+    status: Literal["indexed"]

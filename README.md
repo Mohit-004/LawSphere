@@ -4,7 +4,7 @@ LawSphere is planned as an offline-first Indian legal research and document assi
 
 ## Current milestone: Phase 2 RAG foundation
 
-The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. It does not yet create embeddings or generate answers.
+The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. Stored chunks can now be embedded locally with Ollama and indexed in persistent local Qdrant storage. Semantic retrieval and grounded answer generation are still pending.
 
 ### Run the API
 
@@ -45,6 +45,15 @@ curl.exe -F "file=@C:\path\to\document.pdf" `
 
 PyMuPDF is dual-licensed under AGPL-3.0 or a commercial license; review its [license terms](https://pypi.org/project/pymupdf/) before distributing a packaged build.
 
+### Embed and index stored chunks
+
+Install Ollama separately and pull the default embedding model once while online: `ollama pull embeddinggemma`. Embedding requests then run against the configured local Ollama endpoint. The API uses Ollama's local batch embedding interface and stores vectors and citation metadata with Qdrant's persistent local client ([Ollama embedding API](https://docs.ollama.com/capabilities/embeddings), [Qdrant Python client](https://pypi.org/project/qdrant-client/)). No model is downloaded automatically. To index a previously ingested document, send `POST /api/v1/documents/{document_id}/index`; the ID is returned by the text/upload endpoints. By default vector files are in `ai-engine/local-data/vectors`, or `%LOCALAPPDATA%\LawSphere\vectors` when launched by the desktop app. Override with `LAWSPHERE_VECTOR_STORE_PATH`.
+
+```powershell
+$documentId = "<id returned by the ingest request>"
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents/$documentId/index" -Method Post
+```
+
 ### JavaFX desktop shell
 
 Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. The script installs it in `%LOCALAPPDATA%\LawSphere\python-env` on Windows. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Managed runs keep the database and logs under `%LOCALAPPDATA%\LawSphere`.
@@ -83,7 +92,8 @@ Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside 
 - [ ] Build and verify the Windows installer on a Windows packaging machine
 - [x] Phase 2, slice 1: normalized plain-text storage and offset-tracked chunks
 - [x] Phase 2, slice 2: PDF/DOCX upload and local text extraction
-- [ ] Phase 2: OCR, embeddings, retrieval, grounded answers
+- [x] Phase 2, slice 3: local Ollama chunk embeddings and persistent Qdrant indexing
+- [ ] Phase 2: OCR, semantic retrieval, grounded answers
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
 

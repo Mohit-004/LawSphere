@@ -45,6 +45,8 @@ public final class AiEngineProcessManager implements AutoCloseable {
             Map<String, String> environment = builder.environment();
             environment.put("LAWSPHERE_DATABASE_PATH",
                     localDataDirectory.resolve("database").resolve("lawsphere.db").toString());
+            environment.put("LAWSPHERE_VECTOR_STORE_PATH",
+                    localDataDirectory.resolve("vectors").toString());
             process = builder.start();
         } catch (IOException exception) {
             throw new AiServiceException(
