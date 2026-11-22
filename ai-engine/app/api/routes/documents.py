@@ -19,16 +19,20 @@ from app.document_processing.extractors import (
     extract_pdf,
 )
 from app.embeddings.ollama import EmbeddingError, OllamaEmbeddingProvider
-from app.vector_store.qdrant import VectorStoreError, index_document_chunks
+from app.vector_store.qdrant import VectorStoreError, index_document_chunks, search_chunks
 from app.schemas.documents import (
     DocumentIndexResponse,
     DocumentIngestResponse,
     DocumentListResponse,
     DocumentSummary,
+    SearchResult,
+    SemanticSearchRequest,
+    SemanticSearchResponse,
     TextDocumentRequest,
 )
 
 router = APIRouter(prefix="/api/v1/documents", tags=["documents"])
+search_router = APIRouter(prefix="/api/v1/search", tags=["search"])
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 MAX_EXTRACTED_TEXT_CHARS = 2_000_000
 
@@ -222,4 +226,42 @@ def index_document(
         indexed_chunks=len(chunks),
         vector_dimensions=len(embeddings[0]),
         status="indexed",
+    )
+
+
+@search_router.post("", response_model=SemanticSearchResponse)
+def semantic_search(request: SemanticSearchRequest) -> SemanticSearchResponse:
+    """Find semantically similar indexed chunks and return citation metadata."""
+    try:
+        embedding = OllamaEmbeddingProvider().embed_texts([request.query])[0]
+        hits = search_chunks(embedding, request.limit)
+    except EmbeddingError as exception:
+        raise HTTPException(status_code=503, detail=str(exception)) from exception
+    except VectorStoreError as exception:
+        raise HTTPException(status_code=500, detail=str(exception)) from exception
+
+    results = []
+    for hit in hits:
+        payload = hit.payload
+        try:
+            results.append(SearchResult(
+                document_id=payload["document_id"],
+                chunk_id=payload["chunk_id"],
+                chunk_index=payload["chunk_index"],
+                title=payload["title"],
+                source=payload.get("source"),
+                document_type=payload["document_type"],
+                text=payload["text"],
+                start_offset=payload["start_offset"],
+                end_offset=payload["end_offset"],
+                page_number=payload.get("page_number"),
+                score=hit.score,
+            ))
+        except (KeyError, TypeError, ValueError) as exception:
+            raise HTTPException(status_code=500, detail="Stored search result metadata is invalid.") from exception
+
+    return SemanticSearchResponse(
+        query=request.query,
+        embedding_model=settings.embedding_model,
+        results=results,
     )

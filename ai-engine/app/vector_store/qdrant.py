@@ -19,6 +19,14 @@ class VectorStoreError(RuntimeError):
     """Raised when a vector collection cannot be created or updated."""
 
 
+class VectorSearchHit:
+    """A ranked vector result and its stored citation metadata."""
+
+    def __init__(self, payload: dict, score: float) -> None:
+        self.payload = payload
+        self.score = score
+
+
 def _get_client() -> QdrantClient:
     global _client
     if _client is None:
@@ -97,6 +105,31 @@ def index_document_chunks(
         raise
     except Exception as exception:
         raise VectorStoreError("Could not persist document vectors in local Qdrant storage.") from exception
+
+
+def search_chunks(
+    embedding: list[float],
+    limit: int,
+    model_name: str | None = None,
+) -> list[VectorSearchHit]:
+    """Search the configured model collection and return ranked payloads."""
+    collection_name = get_embedding_collection_name(model_name)
+    try:
+        client = _get_client()
+        if not client.collection_exists(collection_name):
+            return []
+        response = client.query_points(
+            collection_name=collection_name,
+            query=embedding,
+            limit=limit,
+            with_payload=True,
+        )
+        return [
+            VectorSearchHit(payload=point.payload or {}, score=float(point.score))
+            for point in response.points
+        ]
+    except Exception as exception:
+        raise VectorStoreError("Could not search local Qdrant vectors.") from exception
 
 
 def close_vector_store() -> None:

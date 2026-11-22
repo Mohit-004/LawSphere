@@ -4,7 +4,7 @@ LawSphere is planned as an offline-first Indian legal research and document assi
 
 ## Current milestone: Phase 2 RAG foundation
 
-The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. Stored chunks can now be embedded locally with Ollama and indexed in persistent local Qdrant storage. Semantic retrieval and grounded answer generation are still pending.
+The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. Stored chunks can be embedded locally with Ollama, indexed in persistent local Qdrant storage, and searched semantically. Grounded answer generation is still pending.
 
 ### Run the API
 
@@ -54,6 +54,16 @@ $documentId = "<id returned by the ingest request>"
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents/$documentId/index" -Method Post
 ```
 
+### Search indexed chunks
+
+Send a question or search phrase to `POST /api/v1/search`. Results include ranked text excerpts, similarity scores, document titles, source references, and page/offset metadata for citations. Only indexed chunks are searched; an empty result list means no chunks are indexed yet for the configured embedding model. For example:
+
+```powershell
+$body = @{ query = "What does the source say about bail?"; limit = 5 } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/search" `
+    -Method Post -ContentType "application/json" -Body $body
+```
+
 ### JavaFX desktop shell
 
 Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. The script installs it in `%LOCALAPPDATA%\LawSphere\python-env` on Windows. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Managed runs keep the database and logs under `%LOCALAPPDATA%\LawSphere`.
@@ -93,7 +103,8 @@ Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside 
 - [x] Phase 2, slice 1: normalized plain-text storage and offset-tracked chunks
 - [x] Phase 2, slice 2: PDF/DOCX upload and local text extraction
 - [x] Phase 2, slice 3: local Ollama chunk embeddings and persistent Qdrant indexing
-- [ ] Phase 2: OCR, semantic retrieval, grounded answers
+- [x] Phase 2, slice 4: semantic search with ranked chunk and citation metadata
+- [ ] Phase 2: OCR and grounded answer generation
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
 

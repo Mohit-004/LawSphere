@@ -6,7 +6,7 @@ from fastapi import FastAPI
 
 from app.core.config import settings
 from app.database.session import initialize_database
-from app.api.routes.documents import router as documents_router
+from app.api.routes.documents import router as documents_router, search_router
 from app.models.ollama import get_ollama_status
 from app.schemas.system import ModelList, SystemStatus
 from app.vector_store.qdrant import close_vector_store
@@ -28,6 +28,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 app.include_router(documents_router)
+app.include_router(search_router)
 
 
 @app.get("/api/v1/system/status", response_model=SystemStatus, tags=["system"])
