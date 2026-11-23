@@ -13,6 +13,7 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 from lxml.etree import XMLSyntaxError
 
+from app.core.config import settings
 from app.document_processing.chunking import normalize_text
 
 MAX_PDF_PAGES = 1000
@@ -30,7 +31,7 @@ class ExtractedDocument:
 
 
 def extract_pdf(data: bytes) -> ExtractedDocument:
-    """Extract text page by page; scanned image-only PDFs need OCR, added later."""
+    """Extract embedded page text and use local Tesseract for scanned pages."""
     if b"%PDF-" not in data[:1024]:
         raise DocumentExtractionError("The uploaded file does not have a valid PDF header.")
 
@@ -45,15 +46,37 @@ def extract_pdf(data: bytes) -> ExtractedDocument:
                     f"PDFs are limited to {MAX_PDF_PAGES} pages per upload."
                 )
 
-            page_texts = [normalize_text(page.get_text("text", sort=True)) for page in pdf]
+            page_texts = []
+            for page in pdf:
+                text = normalize_text(page.get_text("text", sort=True))
+                if not text and settings.ocr_enabled and page.get_images(full=True):
+                    try:
+                        ocr_text_page = page.get_textpage_ocr(
+                            language=settings.ocr_language,
+                            dpi=settings.ocr_dpi,
+                            full=True,
+                            tessdata=str(settings.ocr_tessdata_path)
+                            if settings.ocr_tessdata_path
+                            else None,
+                        )
+                        text = normalize_text(
+                            page.get_text("text", textpage=ocr_text_page, sort=True)
+                        )
+                    except (RuntimeError, ValueError, OSError) as exception:
+                        raise DocumentExtractionError(
+                            "Could not OCR this scanned PDF page. Install Tesseract with the requested language data, or disable OCR with LAWSPHERE_OCR_ENABLED=false."
+                        ) from exception
+                page_texts.append(text)
     except DocumentExtractionError:
         raise
     except (pymupdf.FileDataError, RuntimeError, ValueError) as exception:
         raise DocumentExtractionError("Could not read this PDF file.") from exception
 
     if not any(page_texts):
+        if settings.ocr_enabled:
+            raise DocumentExtractionError("No readable text was found, even after OCR.")
         raise DocumentExtractionError(
-            "No embedded text was found. Image-only PDFs need OCR, which is not available yet."
+            "No embedded text was found. Enable OCR and install Tesseract to read scanned PDFs."
         )
 
     parts: list[str] = []

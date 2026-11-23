@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     embedding_timeout_seconds: float = 120.0
     chat_model: str = "llama3.2"
     chat_timeout_seconds: float = 180.0
+    ocr_enabled: bool = True
+    ocr_language: str = "eng"
+    ocr_dpi: int = 200
+    ocr_tessdata_path: Path | None = None
     vector_store_path: Path = _PROJECT_ROOT / "local-data" / "vectors"
     vector_collection_prefix: str = "lawsphere_chunks"
 

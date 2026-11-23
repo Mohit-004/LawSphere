@@ -4,7 +4,7 @@ LawSphere is planned as an offline-first Indian legal research and document assi
 
 ## Current milestone: Phase 2 RAG foundation
 
-The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. Stored chunks can be embedded and searched locally, and a first grounded answer endpoint returns its retrieved source passages alongside the answer.
+The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. Scanned PDF pages can use optional local Tesseract OCR. Stored chunks can be embedded and searched locally, and a first grounded answer endpoint returns its retrieved source passages alongside the answer.
 
 ### Run the API
 
@@ -34,7 +34,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents/text" `
 Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/documents"
 ```
 
-PDF and DOCX files can be submitted as multipart uploads to `POST /api/v1/documents/upload` (20 MB maximum). The original file is saved under the local `documents/` data folder; extracted text and chunks go into SQLite. PDF chunk metadata includes its page number. Password-protected PDFs and image-only PDFs are rejected; OCR is not included yet. For a manual upload, use the interactive form at `http://127.0.0.1:8000/docs`, or run:
+PDF and DOCX files can be submitted as multipart uploads to `POST /api/v1/documents/upload` (20 MB maximum). The original file is saved under the local `documents/` data folder; extracted text and chunks go into SQLite. PDF chunk metadata includes its page number. Password-protected PDFs are rejected. Pages without embedded text use local Tesseract OCR when it is installed; PyMuPDF invokes Tesseract for OCR ([OCR API documentation](https://pymupdf.readthedocs.io/en/latest/page.html#Page.get_textpage_ocr)). Install Tesseract and the desired language data separately; the default language is English (`eng`). Set `LAWSPHERE_OCR_LANGUAGE` for another installed language, `LAWSPHERE_OCR_DPI` to adjust OCR resolution, and `LAWSPHERE_OCR_TESSDATA_PATH` if the language data directory is not auto-detected. Set `LAWSPHERE_OCR_ENABLED=false` to disable OCR. For a manual upload, use the interactive form at `http://127.0.0.1:8000/docs`, or run:
 
 ```powershell
 curl.exe -F "file=@C:\path\to\document.pdf" `
@@ -115,7 +115,8 @@ Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside 
 - [x] Phase 2, slice 3: local Ollama chunk embeddings and persistent Qdrant indexing
 - [x] Phase 2, slice 4: semantic search with ranked chunk and citation metadata
 - [x] Phase 2, slice 5: local grounded answer generation with returned source excerpts
-- [ ] Phase 2: OCR and answer quality evaluation
+- [x] Phase 2, slice 6: optional local OCR fallback for scanned PDF pages
+- [ ] Phase 2: answer quality evaluation
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
 
