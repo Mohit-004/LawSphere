@@ -19,12 +19,15 @@ from app.document_processing.extractors import (
     extract_pdf,
 )
 from app.embeddings.ollama import EmbeddingError, OllamaEmbeddingProvider
+from app.models.ollama_chat import ChatGenerationError, OllamaChatProvider
 from app.vector_store.qdrant import VectorStoreError, index_document_chunks, search_chunks
 from app.schemas.documents import (
     DocumentIndexResponse,
     DocumentIngestResponse,
     DocumentListResponse,
     DocumentSummary,
+    AskRequest,
+    AskResponse,
     SearchResult,
     SemanticSearchRequest,
     SemanticSearchResponse,
@@ -264,4 +267,33 @@ def semantic_search(request: SemanticSearchRequest) -> SemanticSearchResponse:
         query=request.query,
         embedding_model=settings.embedding_model,
         results=results,
+    )
+
+
+@search_router.post("/ask", response_model=AskResponse)
+def ask_with_sources(request: AskRequest) -> AskResponse:
+    """Answer from retrieved local excerpts and include source metadata."""
+    search_response = semantic_search(request)
+    if not search_response.results:
+        return AskResponse(
+            query=request.query,
+            answer="I could not find indexed source passages relevant to this question. Ingest and index authoritative sources before asking.",
+            chat_model=settings.chat_model,
+            embedding_model=settings.embedding_model,
+            sources=[],
+        )
+    try:
+        answer = OllamaChatProvider().generate_grounded_answer(
+            request.query,
+            search_response.results,
+        )
+    except ChatGenerationError as exception:
+        raise HTTPException(status_code=503, detail=str(exception)) from exception
+
+    return AskResponse(
+        query=request.query,
+        answer=answer,
+        chat_model=settings.chat_model,
+        embedding_model=settings.embedding_model,
+        sources=search_response.results,
     )

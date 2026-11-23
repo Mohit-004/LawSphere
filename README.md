@@ -4,7 +4,7 @@ LawSphere is planned as an offline-first Indian legal research and document assi
 
 ## Current milestone: Phase 2 RAG foundation
 
-The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. Stored chunks can be embedded locally with Ollama, indexed in persistent local Qdrant storage, and searched semantically. Grounded answer generation is still pending.
+The current implementation establishes the local Python API boundary, SQLite metadata storage, local Ollama detection/model listing, a JavaFX status dashboard, Windows packaging scripts, and ingestion for plain text, PDF, and DOCX with offset-tracked chunks. Stored chunks can be embedded and searched locally, and a first grounded answer endpoint returns its retrieved source passages alongside the answer.
 
 ### Run the API
 
@@ -64,6 +64,16 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/search" `
     -Method Post -ContentType "application/json" -Body $body
 ```
 
+### Ask from indexed sources
+
+Pull the default local chat model with `ollama pull llama3.2` (or set `LAWSPHERE_CHAT_MODEL` to another installed Ollama model). `POST /api/v1/search/ask` retrieves relevant indexed passages, sends the question and excerpts to Ollama's local chat API, and returns the answer with the retrieved passages in `sources`. The prompt asks the model to cite source markers such as `[S1]`, avoid unsupported claims, and say when the indexed material is insufficient. Review generated answers against the returned excerpts; this endpoint is research assistance, not legal advice. Chat uses Ollama's local `/api/chat` endpoint ([Ollama chat API](https://docs.ollama.com/api/chat)).
+
+```powershell
+$body = @{ query = "What do the indexed materials say about bail?"; limit = 5 } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/search/ask" `
+    -Method Post -ContentType "application/json" -Body $body
+```
+
 ### JavaFX desktop shell
 
 Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. The script installs it in `%LOCALAPPDATA%\LawSphere\python-env` on Windows. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Managed runs keep the database and logs under `%LOCALAPPDATA%\LawSphere`.
@@ -104,7 +114,8 @@ Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside 
 - [x] Phase 2, slice 2: PDF/DOCX upload and local text extraction
 - [x] Phase 2, slice 3: local Ollama chunk embeddings and persistent Qdrant indexing
 - [x] Phase 2, slice 4: semantic search with ranked chunk and citation metadata
-- [ ] Phase 2: OCR and grounded answer generation
+- [x] Phase 2, slice 5: local grounded answer generation with returned source excerpts
+- [ ] Phase 2: OCR and answer quality evaluation
 - [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
 

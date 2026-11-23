@@ -77,3 +77,15 @@ class SemanticSearchResponse(BaseModel):
     query: str
     embedding_model: str
     results: list[SearchResult]
+
+
+class AskRequest(SemanticSearchRequest):
+    pass
+
+
+class AskResponse(BaseModel):
+    query: str
+    answer: str
+    chat_model: str
+    embedding_model: str
+    sources: list[SearchResult]

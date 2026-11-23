@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     embedding_model: str = "embeddinggemma"
     embedding_batch_size: int = 32
     embedding_timeout_seconds: float = 120.0
+    chat_model: str = "llama3.2"
+    chat_timeout_seconds: float = 180.0
     vector_store_path: Path = _PROJECT_ROOT / "local-data" / "vectors"
     vector_collection_prefix: str = "lawsphere_chunks"
 
