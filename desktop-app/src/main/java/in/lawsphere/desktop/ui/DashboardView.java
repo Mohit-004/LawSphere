@@ -1,5 +1,6 @@
 package in.lawsphere.desktop.ui;
 
+import in.lawsphere.desktop.api.AskResponse;
 import in.lawsphere.desktop.api.ModelList;
 import in.lawsphere.desktop.api.SystemStatus;
 import javafx.geometry.Insets;
@@ -7,10 +8,16 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
+
+import java.util.function.Consumer;
 
 public final class DashboardView extends BorderPane {
     private final Label apiValue = new Label("Starting…");
@@ -20,12 +27,50 @@ public final class DashboardView extends BorderPane {
     private final Label error = new Label();
     private final ListView<String> models = new ListView<>();
     private final Button refreshButton = new Button("Refresh status");
+    private final TextField question = new TextField();
+    private final Button askButton = new Button("Ask local sources");
+    private final TextArea answer = new TextArea();
+    private final ListView<String> citations = new ListView<>();
+    private final Label askError = new Label();
 
     public DashboardView() {
         getStyleClass().add("app-root");
         setTop(createHeader());
-        setCenter(createContent());
+        setCenter(createTabs());
         setBottom(createFooter());
+    }
+
+    private TabPane createTabs() {
+        TabPane tabs = new TabPane();
+        Tab overview = new Tab("System overview", createContent());
+        overview.setClosable(false);
+        Tab ask = new Tab("Ask", createAskContent());
+        ask.setClosable(false);
+        tabs.getTabs().setAll(overview, ask);
+        return tabs;
+    }
+
+    private VBox createAskContent() {
+        Label heading = new Label("Ask your indexed sources");
+        heading.getStyleClass().add("section-heading");
+        Label note = new Label("Answers use local Ollama models and include the retrieved source passages.");
+        note.getStyleClass().add("subtitle");
+        question.setPromptText("Ask a question about your indexed legal materials");
+        askButton.getStyleClass().add("secondary-button");
+        answer.setEditable(false);
+        answer.setWrapText(true);
+        answer.setPromptText("Your answer will appear here.");
+        VBox.setVgrow(answer, Priority.ALWAYS);
+        citations.setPlaceholder(new Label("Source passages will appear here."));
+        VBox.setVgrow(citations, Priority.ALWAYS);
+        askError.getStyleClass().add("error-message");
+        askError.setWrapText(true);
+        VBox content = new VBox(12, heading, note, question, askButton, askError,
+                new Label("Answer"), answer, new Label("Retrieved sources"), citations);
+        content.setPadding(new Insets(20, 36, 24, 36));
+        VBox.setVgrow(answer, Priority.ALWAYS);
+        VBox.setVgrow(citations, Priority.ALWAYS);
+        return content;
     }
 
     private HBox createHeader() {
@@ -92,6 +137,40 @@ public final class DashboardView extends BorderPane {
 
     public void setRefreshHandler(Runnable handler) {
         refreshButton.setOnAction(event -> handler.run());
+    }
+
+    public void setAskHandler(Consumer<String> handler) {
+        askButton.setOnAction(event -> handler.accept(question.getText()));
+        question.setOnAction(event -> handler.accept(question.getText()));
+    }
+
+    public void setAskLoading(boolean loading) {
+        askButton.setDisable(loading);
+        question.setDisable(loading);
+        askButton.setText(loading ? "Searching and generating…" : "Ask local sources");
+        if (loading) {
+            askError.setText("");
+        }
+    }
+
+    public void showAnswer(AskResponse response) {
+        answer.setText(response.answer());
+        citations.getItems().setAll(java.util.stream.IntStream.range(0, response.sources().size())
+                .mapToObj(index -> formatCitation(index + 1, response.sources().get(index)))
+                .toList());
+        askError.setText("");
+    }
+
+    private String formatCitation(int index, in.lawsphere.desktop.api.SourceCitation source) {
+        String location = source.pageNumber() == null ? "" : " · page " + source.pageNumber();
+        String reference = source.source() == null || source.source().isBlank()
+                ? source.title()
+                : source.title() + " · " + source.source();
+        return "[S" + index + "] " + reference + location + System.lineSeparator() + source.text();
+    }
+
+    public void showAskError(String message) {
+        askError.setText(message);
     }
 
     public void setLoading(boolean loading) {

@@ -76,7 +76,7 @@ Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/search/ask" `
 
 ### JavaFX desktop shell
 
-Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. The script installs it in `%LOCALAPPDATA%\LawSphere\python-env` on Windows. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. Closing the window stops only the backend process started by this application. Managed runs keep the database and logs under `%LOCALAPPDATA%\LawSphere`.
+Install Python 3.11 or later, Java 21, and Maven. From the project folder, prepare the Python environment with the setup script. The script installs it in `%LOCALAPPDATA%\LawSphere\python-env` on Windows. Then launch the dashboard from `desktop-app/`. It starts the local API if needed, checks service and Ollama readiness on a background thread, and lists installed models. The **Ask** tab sends questions to the local grounded-answer endpoint and displays the answer with retrieved source excerpts. Ingest and index documents through the local API before asking questions. Closing the window stops only the backend process started by this application. Managed runs keep the database and logs under `%LOCALAPPDATA%\LawSphere`.
 
 ```powershell
 .\scripts\setup-python.ps1
@@ -117,7 +117,8 @@ Application data is stored under `%LOCALAPPDATA%\LawSphere` and remains outside 
 - [x] Phase 2, slice 5: local grounded answer generation with returned source excerpts
 - [x] Phase 2, slice 6: optional local OCR fallback for scanned PDF pages
 - [ ] Phase 2: answer quality evaluation
-- [ ] Phase 3 onward: authoritative Indian legal sources, document intelligence, desktop UI, packaging
+- [x] Desktop UI slice 1: ask from indexed sources and inspect retrieved citations
+- [ ] Phase 3 onward: authoritative Indian legal sources, document management UI, packaging
 - [ ] Version 2: ontology and knowledge-graph extension after Version 1 is functional
 
 ## Privacy direction

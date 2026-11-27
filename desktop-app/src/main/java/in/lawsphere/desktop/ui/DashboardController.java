@@ -1,5 +1,6 @@
 package in.lawsphere.desktop.ui;
 
+import in.lawsphere.desktop.api.AskResponse;
 import in.lawsphere.desktop.api.LocalAiClient;
 import in.lawsphere.desktop.api.ModelList;
 import in.lawsphere.desktop.api.SystemStatus;
@@ -22,7 +23,35 @@ public final class DashboardController {
 
     public void initialize() {
         view.setRefreshHandler(this::refresh);
+        view.setAskHandler(this::ask);
         refresh();
+    }
+
+    private void ask(String question) {
+        if (question == null || question.isBlank()) {
+            view.showAskError("Enter a question to search your indexed sources.");
+            return;
+        }
+        view.setAskLoading(true);
+        Task<AskResponse> task = new Task<>() {
+            @Override
+            protected AskResponse call() {
+                processManager.startIfNeeded();
+                return client.ask(question.trim(), 5);
+            }
+        };
+        task.setOnSucceeded(event -> {
+            view.showAnswer(task.getValue());
+            view.setAskLoading(false);
+        });
+        task.setOnFailed(event -> {
+            Throwable failure = task.getException();
+            view.showAskError(failure == null ? "Unknown local answer error" : failure.getMessage());
+            view.setAskLoading(false);
+        });
+        Thread worker = new Thread(task, "lawsphere-local-answer");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private void refresh() {

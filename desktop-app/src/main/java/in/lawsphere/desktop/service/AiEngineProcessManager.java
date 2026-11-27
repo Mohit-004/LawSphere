@@ -27,7 +27,7 @@ public final class AiEngineProcessManager implements AutoCloseable {
         this.projectRoot = resolveProjectRoot();
     }
 
-    public void startIfNeeded() {
+    public synchronized void startIfNeeded() {
         if (isApiAvailable()) {
             return;
         }
@@ -153,7 +153,7 @@ public final class AiEngineProcessManager implements AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public synchronized void close() {
         if (process == null || !process.isAlive()) {
             return;
         }
